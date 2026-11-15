@@ -27,4 +27,14 @@ Text fields accept simple HTML such as `<em>`, `<a href="…">` and `<br>`.
 
 ## Publishing
 
-Upload the whole folder to any static host: Netlify (drag and drop), GitHub Pages, Cloudflare Pages, or your own server.
+Live at https://cariasmatico.github.io/portfolio/ (GitHub Pages, from the `main` branch of github.com/cariasmatico/portfolio).
+
+To update the live site after editing, run in this folder:
+
+```
+git add -A
+git commit -m "Describe what changed"
+git push
+```
+
+GitHub rebuilds the site in about a minute.
