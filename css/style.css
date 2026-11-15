@@ -34,6 +34,19 @@
   :root { --gutter: 32px; --gap: 1.75rem; }
 }
 
+/* Inverted mode — switched on by dragging the creature to the centre
+   of the landing page (js/gadget.js). Each colour is the exact inverse
+   of the one above. Images are not affected. */
+:root[data-inverted] {
+  --paper: #000000;
+  --ink: #ebebeb;
+  --ink-soft: #888a90;
+  --rule: #1a1b1e;
+  --tile: #0c0d11;
+  --focus: #d0b400;
+  color-scheme: dark;
+}
+
 *, *::before, *::after { box-sizing: border-box; }
 
 html { -webkit-text-size-adjust: 100%; }
@@ -46,6 +59,7 @@ body {
   font-size: var(--fs-m);
   line-height: 1.45;
   min-height: 100vh;
+  transition: background-color 0.45s, color 0.45s;
   display: flex;
   flex-direction: column;
 }
@@ -337,8 +351,35 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
   background: none;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation;
+  touch-action: none;          /* lets fingers drag it without scrolling the page */
+  user-select: none;
+  -webkit-user-select: none;
 }
+.gadget.dragging { cursor: grabbing; z-index: 20; }
+
+/* drop zone in the middle of the screen, visible only while dragging */
+.gadget-target {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  width: clamp(112px, 24vmin, 200px);
+  height: clamp(112px, 24vmin, 200px);
+  transform: translate(-50%, -50%) scale(0.85);
+  border: 1px dashed var(--ink-soft);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: var(--fs-s);
+  color: var(--ink-soft);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 19;
+  transition: opacity 0.2s, transform 0.25s, border-color 0.2s;
+}
+.gadget-target span { opacity: 0.8; }
+.gadget-target.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+.gadget-target.hot { border-style: solid; border-color: var(--ink); transform: translate(-50%, -50%) scale(1.12); }
+.gadget-target.hot span { opacity: 0; }
 .gadget canvas { width: 100%; height: 100%; display: block; }
 .gadget-label {
   position: absolute;

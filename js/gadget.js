@@ -31,6 +31,13 @@
   btn.innerHTML = '<span class="gadget-label" aria-live="polite"></span><canvas aria-hidden="true"></canvas>';
   document.body.appendChild(btn);
 
+  /* drop zone shown in the middle of the screen while dragging */
+  var target = document.createElement("div");
+  target.className = "gadget-target";
+  target.setAttribute("aria-hidden", "true");
+  target.innerHTML = "<span>invert</span>";
+  document.body.appendChild(target);
+
   var cv = btn.querySelector("canvas");
   var labelEl = btn.querySelector(".gadget-label");
   var ctx = cv.getContext("2d");
@@ -42,6 +49,9 @@
     var dpr = Math.min(window.devicePixelRatio || 1, 2);
     px = Math.max(1, Math.round(s * dpr));
     [cv, offA, offB].forEach(function (c) { c.width = c.height = px; });
+    readColors();
+  }
+  function readColors() {
     var cs = getComputedStyle(document.documentElement);
     INK = cs.getPropertyValue("--ink").trim() || INK;
     PAPER = cs.getPropertyValue("--paper").trim() || PAPER;
@@ -68,7 +78,12 @@
   function pose(now) {
     var t = now / 1000, cx = 50, cy = 64, sx = 1, sy = 1;
     if (!reduce) { var b = Math.sin(t * 2.2) * 0.025; sx += b; sy -= b; }
-    if (st.hover && !reduce) { cx += Math.sin(t * 40) * 0.6; sx += 0.05; sy += 0.05; }
+    if (st.hover && !reduce && !drag.active) { cx += Math.sin(t * 40) * 0.6; sx += 0.05; sy += 0.05; }
+    if (drag.active && !reduce) {               // dangling from the pointer
+      var v = Math.min(1, Math.abs(drag.vx) / 25);
+      sx += -0.1 + v * 0.15; sy += 0.14 - v * 0.1;
+      cy += 3 + Math.sin(t * 9) * 1.2;
+    }
 
     if (st.clickAt >= 0 && !reduce) {
       var k = now - st.clickAt, p;
@@ -107,6 +122,7 @@
   function eyes(P, now) {
     var open = now > st.blinkAt && now < st.blinkAt + 130 ? 0.15 : 1;
     if (st.hover) open *= 1.2;
+    if (drag.active) open = drag.hot ? 1.45 : 1.3;   // surprised
     return [-1, 1].map(function (s) {
       return { x: P.cx + (s * 8 + st.look.x * 3.5) * P.sx, y: P.cy + (-4 + st.look.y * 3) * P.sy, open: open };
     });
@@ -232,7 +248,7 @@
       renderInto(ctx, st.medium, P, E);
     }
 
-    if (now > st.labelUntil && !st.hover) btn.classList.remove("show-label");
+    if (now > st.labelUntil && !st.hover && !drag.active) btn.classList.remove("show-label");
     loop();
   }
 
@@ -257,6 +273,7 @@
   }, { passive: true });
 
   btn.addEventListener("click", function () {
+    if (drag.justDragged) { drag.justDragged = false; return; }   // a drag, not a click
     var now = performance.now();
     if (st.switchAt >= 0) return;            // already mid-jump
     st.clickAt = now;
@@ -264,10 +281,98 @@
     loop();
   });
 
+  /* ---------- drag to the centre → invert the site ---------- */
+  var drag = { id: null, active: false, hot: false, sx: 0, sy: 0, dx: 0, dy: 0, vx: 0, lastX: 0, justDragged: false };
+
+  function hotRadius() { return Math.max(56, Math.min(innerWidth, innerHeight) * 0.12); }
+
+  btn.addEventListener("pointerdown", function (e) {
+    if (e.button !== 0 || drag.id !== null) return;
+    drag.id = e.pointerId; drag.sx = e.clientX; drag.sy = e.clientY; drag.lastX = e.clientX;
+    drag.active = false; drag.justDragged = false;
+    try { btn.setPointerCapture(e.pointerId); } catch (err) {}
+  });
+
+  btn.addEventListener("pointermove", function (e) {
+    if (e.pointerId !== drag.id) return;
+    var dx = e.clientX - drag.sx, dy = e.clientY - drag.sy;
+    if (!drag.active && Math.sqrt(dx * dx + dy * dy) < 7) return;
+    if (!drag.active) {
+      drag.active = true;
+      btn.classList.add("dragging"); target.classList.add("show");
+      btn.style.transition = "none";
+    }
+    drag.dx = dx; drag.dy = dy;
+    drag.vx = drag.vx * 0.7 + (e.clientX - drag.lastX) * 0.3; drag.lastX = e.clientX;
+    btn.style.transform = "translate(" + dx + "px," + dy + "px)";
+
+    var r = btn.getBoundingClientRect();
+    var cx = r.left + r.width / 2 - innerWidth / 2, cy = r.top + r.height / 2 - innerHeight / 2;
+    var hot = Math.sqrt(cx * cx + cy * cy) < hotRadius();
+    if (hot !== drag.hot) {
+      drag.hot = hot;
+      target.classList.toggle("hot", hot);
+      if (hot) { labelEl.textContent = isInverted() ? "back to paper" : "invert"; btn.classList.add("show-label"); }
+      else btn.classList.remove("show-label");
+    }
+    loop();
+  });
+
+  function endDrag(e) {
+    if (e.pointerId !== drag.id) return;
+    drag.id = null;
+    if (!drag.active) return;                 // it was a plain click
+    drag.active = false; drag.justDragged = true;
+    setTimeout(function () { drag.justDragged = false; }, 50);
+    btn.classList.remove("dragging", "show-label");
+    target.classList.remove("show", "hot");
+
+    if (drag.hot && e.type === "pointerup") { drag.hot = false; invertFromCentre(); return; }
+    drag.hot = false;
+    // spring back to the corner
+    btn.style.transition = reduce ? "none" : "transform 0.5s cubic-bezier(.3,1.5,.5,1)";
+    btn.style.transform = "";
+  }
+  btn.addEventListener("pointerup", endDrag);
+  btn.addEventListener("pointercancel", endDrag);
+
+  function isInverted() { return document.documentElement.hasAttribute("data-inverted"); }
+
+  function setInverted(on) {
+    if (on) document.documentElement.setAttribute("data-inverted", "");
+    else document.documentElement.removeAttribute("data-inverted");
+    try { localStorage.setItem("inverted", on ? "1" : "0"); } catch (err) {}
+    readColors();
+  }
+
+  /* the creature is swallowed by the centre, the page flips,
+     and it pops back out in the corner in the new colours */
+  function invertFromCentre() {
+    var t = "translate(" + drag.dx + "px," + drag.dy + "px)";
+    btn.style.transition = reduce ? "none" : "transform 0.25s ease-in";
+    btn.style.transform = t + " scale(0)";
+    setTimeout(function () {
+      setInverted(!isInverted());
+      btn.style.transition = "none";
+      btn.style.transform = "scale(0)";
+      setTimeout(function () {
+        btn.style.transition = reduce ? "none" : "transform 0.45s cubic-bezier(.3,1.6,.5,1)";
+        btn.style.transform = "";
+        st.clickAt = performance.now();         // little landing bounce
+      }, reduce ? 0 : 420);
+    }, reduce ? 0 : 260);
+  }
+
+  /* keyboard: "i" inverts while the creature has focus */
+  btn.addEventListener("keydown", function (e) {
+    if (e.key === "i" || e.key === "I") { setInverted(!isInverted()); }
+  });
+
   /* ---------- only on the landing page ---------- */
   function onRoute() {
     var h = location.hash.replace(/^#\/?/, "");
     btn.hidden = !(h === "" || h === "home");
+    target.classList.remove("show", "hot");
     if (!btn.hidden) { resize(); loop(); }
   }
   window.addEventListener("hashchange", onRoute);
