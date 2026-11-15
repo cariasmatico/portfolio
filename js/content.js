@@ -27,15 +27,29 @@ window.SITE = {
     publisher: ""
   },
 
-  /* ---------- Landing page: upcoming dates ----------
+  /* ---------- Agenda ----------
+     Every event you add stays here. Future ones also appear on the landing
+     page; once the date has passed they move to "Past" on the Agenda page.
      { date: "2027-01-24", title: "Title", text: "what — venue, city", url: "https://…" }
-       date   YYYY-MM-DD. Dates in the past are hidden automatically.
+       date   "YYYY-MM-DD", or "YYYY-MM" / "YYYY" when you only know the month or year
        title  shown in italics; becomes a link when url is filled
        text   the rest of the line (optional)
        url    optional. An external page ("https://…") opens in a new tab;
-              one of your works ("#aparicion") opens its page. */
-  upcoming: [
-    { date: "2027-01-08", title: "SANGRE", text: "multimedia performance — Forum HfMT, Hamburg", url: "" }
+              one of your works ("#aparicion") opens its page.
+     Order doesn't matter: the site sorts by date. */
+  agenda: [
+    { date: "2027-01-08", title: "SANGRE", text: "multimedia performance — Forum HfMT, Hamburg", url: "" },
+
+    /* past */
+    { date: "2026-07", title: "ANIMACIÓN", text: "Multimedia Composition concert — HfMT Hamburg", url: "#animacion" },
+    { date: "2026-06", title: "APARICIÓN", text: "Stimme X Festival — Hamburg", url: "#aparicion" },
+    { date: "2026-06", title: "APARICIÓN", text: "Blurred Edges Festival — Hamburg", url: "#aparicion" },
+    { date: "2026-02", title: "APARICIÓN", text: "Multimedia Composition concert — HfMT Hamburg", url: "#aparicion" },
+    { date: "2025", title: "Polifonía 1", text: "“Intrafonías”, Anilla MAC — Museum of Contemporary Art, Santiago", url: "#polifonia-1" },
+    { date: "2024", title: "Evaristo", text: "Antofagasta Symphony Orchestra — Antofagasta", url: "#evaristo" },
+    { date: "2023", title: "Dispositivo 1: Asiento por favor", text: "“Efímera_”, Anilla MAC — Museum of Contemporary Art, Santiago", url: "#dispositivo-1" },
+    { date: "2021", title: "Hilos", text: "XXX Festival de Música Contemporánea UC — Santiago", url: "#hilos" },
+    { date: "2021", title: "Ejercicios de respiración", text: "Festival MusicAhora — La Serena", url: "#ejercicios-de-respiracion" }
   ],
 
   /* ---------- Works ----------
@@ -502,15 +516,13 @@ window.SITE = {
         heading: "Education and training",
         items: [
           { year: "2026", text: "MIXTUR International Workshop with Simon Steen-Andersen, Isabel Mundry and Sarah Nemtsov. Barcelona, Spain" },
-          { year: "2025–", text: "Master’s in Multimedia Composition, Hochschule für Musik und Theater Hamburg, Germany" },
+          { year: "2025-–", text: "Master’s in Multimedia Composition, Hochschule für Musik und Theater Hamburg, Germany" },
           { year: "2025", text: "Workshop “Interdisciplinary Composition”, organised by Miguel Farías and Rodrigo Cádiz. Universidad Católica de Chile, Santiago" },
           { year: "2024", text: "“Fuera de Campo”, training programme in sound art, Fundación Urdimbre. Online" },
           { year: "2024", text: "Workshop “Teatro Compuesto” and stage performance, with Angelo Solari. Santiago, Chile" },
           { year: "2024", text: "Workshop “Music-Theatrical Composition”, Teatro de la Memoria. Santiago, Chile" },
-          { year: "2023", text: "Playwriting workshop with Raúl Riquelme. Santiago, Chile" },
           { year: "2023", text: "International course “New Opera”, Fundación Atlanticx. Buenos Aires, Argentina" },
           { year: "2023", text: "Creative training programme “Interactive Media”, Academia Sinestesia. Santiago, Chile" },
-          { year: "2022", text: "Max/MSP programming course with Andrés Quezada. Santiago, Chile" },
           { year: "2020", text: "Bachelor’s degree in Music, specialising in Composition, Pontificia Universidad Católica de Chile" }
         ]
       },
@@ -525,19 +537,6 @@ window.SITE = {
           { year: "2019", text: "Third prize, Nuevo Mundo Baroque Orchestra composition competition. O’Higgins Region, Chile" },
           { year: "2018", text: "Sole winner, Composition Chair competition, Pontificia Universidad Católica de Chile" },
           { year: "2018", text: "Second prize, Fifth Composition Competition of the Marga Marga Orchestra. Valparaíso, Chile" }
-        ]
-      },
-      {
-        heading: "Selected performances and exhibitions",
-        items: [
-          { year: "2026", text: "<em>APARICIÓN</em>, Stimme X Festival and Blurred Edges Festival, Hamburg" },
-          { year: "2026", text: "<em>APARICIÓN</em> and <em>ANIMACIÓN</em>, Multimedia Composition concerts, HfMT Hamburg" },
-          { year: "2025", text: "<em>Polifonía 1</em>, “Intrafonías”, Museum of Contemporary Art, Santiago" },
-          { year: "2024", text: "<em>Evaristo</em>, Antofagasta Symphony Orchestra" },
-          { year: "2023", text: "<em>Dispositivo 1: Asiento por favor</em>, “Efímera_”, Museum of Contemporary Art, Santiago" },
-          { year: "2021", text: "<em>Hilos</em>, XXX Festival de Música Contemporánea UC, Santiago" },
-          { year: "2021", text: "<em>Ejercicios de respiración</em>, Festival MusicAhora, La Serena" },
-          { year: "2021", text: "<em>Tercera Hipótesis de Lucha</em>, Ensamble Palimpsesto, virtual season" }
         ]
       }
     ]

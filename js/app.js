@@ -40,7 +40,7 @@
   /* ---------- Header & footer ---------- */
 
   function renderHeader(current) {
-    var items = [["works", "Works"], ["about", "About"], ["contact", "Contact"]];
+    var items = [["works", "Works"], ["agenda", "Agenda"], ["about", "About"], ["contact", "Contact"]];
     var isWork = !!bySlug[current];
     headerEl.hidden = current === "";
     headerEl.innerHTML =
@@ -156,7 +156,7 @@
 
   function home() {
     var featured = S.works.filter(function (w) { return w.featured; });
-    var upcoming = (S.upcoming || []).filter(function (u) { return new Date(u.date + "T23:59") >= new Date(); });
+    var upcoming = agendaSplit().upcoming;
 
     return {
       title: S.name,
@@ -165,7 +165,7 @@
           '<h1 class="home-name">' + S.name + "</h1>" +
           '<p class="home-tagline">' + S.tagline + "</p>" +
           '<nav class="home-nav" aria-label="Main">' +
-            '<a href="#works">Works</a><a href="#about">About & CV</a><a href="#contact">Contact</a>' +
+            '<a href="#works">Works</a><a href="#agenda">Agenda</a><a href="#about">About & CV</a><a href="#contact">Contact</a>' +
           "</nav>" +
           '<div class="home-cols">' +
             (featured.length ?
@@ -176,26 +176,70 @@
               "</ul></div>" : "") +
             (upcoming.length ?
               '<div class="home-block"><h2 class="label">Upcoming</h2><ul class="plain-list">' +
-                upcoming.map(function (u) {
-                  /* title is shown in italics and becomes the link when url is set.
-                     url can be external ("https://…") or one of your works ("#aparicion"). */
-                  var title = u.title ? "<em>" + u.title + "</em>" : "";
-                  if (title && u.url) {
-                    var ext = u.url.charAt(0) !== "#";
-                    title = '<a class="up-link" href="' + attr(u.url) + '"' + (ext ? ' target="_blank" rel="noopener"' : "") + ">" + title + (ext ? " ↗" : "") + "</a>";
-                  }
-                  var text = title + (title && u.text ? ", " : "") + (u.text || "");
-                  return '<li><div class="row"><span class="yr">' + fmtDate(u.date) + "</span><span>" + text + "</span></div></li>";
-                }).join("") +
-              "</ul></div>" : "") +
+                upcoming.map(agendaRow).join("") +
+              '</ul><a class="more" href="#agenda">Full agenda →</a></div>' : "") +
           "</div>" +
         "</section>"
     };
   }
 
+  /* ---------- Agenda ----------
+     Dates can be "2027-01-08", "2026-06" (month only) or "2021" (year only). */
+
+  function dateParts(iso) {
+    var p = String(iso).split("-").map(Number);
+    return { y: p[0], m: p[1] || 0, d: p[2] || 0 };
+  }
+  function dateStart(iso) { var q = dateParts(iso); return new Date(q.y, q.m ? q.m - 1 : 0, q.d || 1); }
+  function dateEnd(iso) {
+    var q = dateParts(iso);
+    if (q.d) return new Date(q.y, q.m - 1, q.d, 23, 59);
+    if (q.m) return new Date(q.y, q.m, 0, 23, 59);       // last day of that month
+    return new Date(q.y, 11, 31, 23, 59);
+  }
   function fmtDate(iso) {
-    var d = new Date(iso + "T12:00");
-    return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+    var q = dateParts(iso);
+    if (!q.m) return String(q.y);
+    var opts = q.d ? { day: "numeric", month: "short", year: "numeric" } : { month: "short", year: "numeric" };
+    return dateStart(iso).toLocaleDateString("en-GB", opts);
+  }
+
+  /* everything in S.agenda, split by today's date */
+  function agendaSplit() {
+    var now = new Date(), all = (S.agenda || S.upcoming || []).slice();
+    var up = all.filter(function (u) { return dateEnd(u.date) >= now; })
+                .sort(function (a, b) { return dateStart(a.date) - dateStart(b.date); });
+    var past = all.filter(function (u) { return dateEnd(u.date) < now; })
+                  .sort(function (a, b) { return dateStart(b.date) - dateStart(a.date); });
+    return { upcoming: up, past: past };
+  }
+
+  /* one line: date · title (italic, linked when url is set) · text.
+     url can be external ("https://…") or one of your works ("#aparicion"). */
+  function agendaRow(u) {
+    var title = u.title ? "<em>" + u.title + "</em>" : "";
+    if (title && u.url) {
+      var ext = u.url.charAt(0) !== "#";
+      title = '<a class="up-link" href="' + attr(u.url) + '"' + (ext ? ' target="_blank" rel="noopener"' : "") + ">" + title + (ext ? " ↗" : "") + "</a>";
+    }
+    var text = title + (title && u.text ? ", " : "") + (u.text || "");
+    return '<li><div class="row"><span class="yr">' + fmtDate(u.date) + "</span><span>" + text + "</span></div></li>";
+  }
+
+  function agendaPage() {
+    var A = agendaSplit();
+    return {
+      title: "Agenda — " + S.name,
+      html:
+        '<section class="agenda wrap">' +
+          '<h1 class="page-title">Agenda</h1>' +
+          '<div class="agenda-block"><h2 class="label">Upcoming</h2>' +
+            (A.upcoming.length ? '<ul class="plain-list">' + A.upcoming.map(agendaRow).join("") + "</ul>"
+                               : '<p class="soft">No dates announced right now.</p>') +
+          "</div>" +
+          (A.past.length ? '<div class="agenda-block"><h2 class="label">Past</h2><ul class="plain-list">' + A.past.map(agendaRow).join("") + "</ul></div>" : "") +
+        "</section>"
+    };
   }
 
   function worksPage() {
@@ -291,21 +335,22 @@
         '<section class="about wrap">' +
           '<h1 class="page-title">About</h1>' +
           '<div class="about-grid">' +
-            '<div class="bio">' +
-              (A.portrait
-                ? '<figure class="media"><img src="' + attr(A.portrait) + '" alt="Portrait of ' + attr(plain(S.name)) + '">' + (A.portraitCaption ? "<figcaption>" + A.portraitCaption + "</figcaption>" : "") + "</figure>"
-                : "") +
-              A.bio.map(function (p) { return "<p>" + p + "</p>"; }).join("") +
-            "</div>" +
-            '<div class="cv">' +
-              '<div class="cv-head"><h2 class="label">CV</h2>' +
-                (A.cvFile ? '<a href="' + attr(A.cvFile) + '" target="_blank" rel="noopener">' + (A.cvLabel || "Full CV (PDF)") + ' ↗</a>' : "") +
+            (A.portrait
+              ? '<figure class="media about-photo"><img src="' + attr(A.portrait) + '" alt="Portrait of ' + attr(plain(S.name)) + '">' + (A.portraitCaption ? "<figcaption>" + A.portraitCaption + "</figcaption>" : "") + "</figure>"
+              : "") +
+            '<div class="about-text">' +
+              '<div class="bio">' + A.bio.map(function (p) { return "<p>" + p + "</p>"; }).join("") + "</div>" +
+              '<div class="cv">' +
+                '<div class="cv-head"><h2 class="label">CV</h2>' +
+                  (A.cvFile ? '<a href="' + attr(A.cvFile) + '" target="_blank" rel="noopener">' + (A.cvLabel || "Full CV (PDF)") + ' ↗</a>' : "") +
+                "</div>" +
+                /* each CV section is a fold-out list, closed by default */
+                A.cv.map(function (sec) {
+                  return '<details class="cv-sec"><summary><span>' + sec.heading + '</span><span class="cv-count">' + sec.items.length + "</span></summary><ul>" +
+                    sec.items.map(function (it) { return '<li><span class="yr">' + it.year + "</span><span>" + it.text + "</span></li>"; }).join("") +
+                  "</ul></details>";
+                }).join("") +
               "</div>" +
-              A.cv.map(function (sec) {
-                return '<section class="cv-sec"><h3>' + sec.heading + "</h3><ul>" +
-                  sec.items.map(function (it) { return '<li><span class="yr">' + it.year + "</span><span>" + it.text + "</span></li>"; }).join("") +
-                "</ul></section>";
-              }).join("") +
             "</div>" +
           "</div>" +
         "</section>"
@@ -346,6 +391,7 @@
     var view =
       key === "" ? home() :
       key === "works" ? worksPage() :
+      key === "agenda" ? agendaPage() :
       key === "about" ? aboutPage() :
       key === "contact" ? contactPage() :
       bySlug[key] ? workPage(bySlug[key]) : notFound();
