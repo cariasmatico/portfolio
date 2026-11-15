@@ -64,7 +64,9 @@ body {
   flex-direction: column;
 }
 
-main { flex: 1; outline: none; }
+main { flex: 1; outline: none; transition: opacity 0.22s ease-out; }
+/* page change fade: out quickly, then back in (see navigate() in app.js) */
+main.is-leaving { opacity: 0; transition-duration: 0.14s; transition-timing-function: ease-in; }
 
 .wrap {
   width: 100%;

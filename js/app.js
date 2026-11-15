@@ -430,7 +430,20 @@
     var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
   }
 
-  window.addEventListener("hashchange", route);
+  /* Page change: a short fade out, swap the page, fade back in.
+     Timing lives in css/style.css (main / main.is-leaving). */
+  var FADE_OUT = 140, fadeTimer;
+  function navigate() {
+    if (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches) return route();
+    clearTimeout(fadeTimer);
+    app.classList.add("is-leaving");
+    fadeTimer = setTimeout(function () {
+      route();
+      app.classList.remove("is-leaving");
+    }, FADE_OUT);
+  }
+
+  window.addEventListener("hashchange", navigate);
   renderFooter();
   route();
 })();
