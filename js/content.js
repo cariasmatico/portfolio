@@ -130,7 +130,7 @@ window.SITE = {
         "<em>ANIMACIÓN</em> investigates the mechanisms by which the essence of the human form, or humanity itself, is diminished or stripped away. Through live motion tracking applied interchangeably to unexpected inanimate objects and live human avatars, the work explores how empathy develops, grows and dissolves. This connection is presented as an incomplete link, full of tensions and glitches, in which the transference of life is neither clean nor perfect."
       ],
       media: [
-        { type: "youtube", id: "xkXRK2se0a4", caption: "Full video (work in progress)" },
+        { type: "youtube", id: "HZIm-L01DT0", caption: "Full video (work in progress)" },
         { type: "image", src: "media/works/animacion/01.jpg", caption: "" },
         { type: "image", src: "media/works/animacion/03.jpg", caption: "" }
       ],
