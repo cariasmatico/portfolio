@@ -370,12 +370,11 @@
 
   /* ---------- only on the landing page ---------- */
   function onRoute() {
-    var h = location.hash.replace(/^#\/?/, "");
-    btn.hidden = !(h === "" || h === "home");
+    btn.hidden = document.body.getAttribute("data-page") !== "home";
     target.classList.remove("show", "hot");
     if (!btn.hidden) { resize(); loop(); }
   }
-  window.addEventListener("hashchange", onRoute);
+  document.addEventListener("pagechange", onRoute);   // sent by app.js after each page change
   window.addEventListener("resize", function () { if (!btn.hidden) resize(); });
   document.addEventListener("visibilitychange", loop);
   onRoute();

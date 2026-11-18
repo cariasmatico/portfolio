@@ -1,11 +1,14 @@
 /* =========================================================================
    APP — builds the pages from window.SITE (js/content.js)
-   Pages are chosen by the part of the address after "#":
-     (empty)   landing page
-     #works    works index
-     #<slug>   a single work, e.g. #field-notes
-     #about    bio and CV
-     #contact  contact
+   Each page has its own address:
+     /               landing page
+     /works/         works index
+     /works/<slug>/  a single work, e.g. /works/zoom/
+     /agenda/  /about/  /contact/
+   The HTML files at those addresses are written by build.js (run
+   `node build.js` after editing content.js). Opened as a single file or in
+   the Claude preview, the same pages use "#works", "#zoom" … instead.
+   Inside this file, links are written as "#key" and converted by pageLink().
    ========================================================================= */
 (function () {
   "use strict";
@@ -17,6 +20,31 @@
 
   var bySlug = {};
   S.works.forEach(function (w) { bySlug[w.slug] = w; });
+
+  /* Real addresses when the page has <base id="site-base"> (made by build.js);
+     "#key" addresses otherwise (single file, Claude preview). */
+  var PATHS = !!document.getElementById("site-base") && location.protocol !== "file:";
+  var ROOT = PATHS ? new URL(".", document.baseURI).pathname : "";
+
+  /* key ("", "works", "zoom" …) -> href */
+  function pageLink(key) {
+    if (!PATHS) return "#" + key;
+    if (!key) return "./";
+    return (bySlug[key] ? "works/" : "") + key + "/";
+  }
+  /* current address -> key */
+  function currentKey() {
+    var k = PATHS
+      ? location.pathname.slice(ROOT.length).replace(/index\.html$/, "").replace(/\/+$/, "").replace(/^works\/(?=.)/, "")
+      : location.hash.replace(/^#\/?/, "");
+    k = decodeURIComponent(k);
+    return k === "home" ? "" : k;
+  }
+  /* rewrite every href="#key" in a piece of HTML (also links typed in content.js) */
+  function fixLinks(html) {
+    if (!PATHS) return html;
+    return html.replace(/href="#([^"]*)"/g, function (m, k) { return 'href="' + attr(pageLink(k)) + '"'; });
+  }
 
   /* Works page state: filter + grid/list, remembered per visitor */
   var COLLAB = "Collaborations";
@@ -43,7 +71,7 @@
     var items = [["works", "Works"], ["agenda", "Agenda"], ["about", "About"], ["contact", "Contact"]];
     var isWork = !!bySlug[current];
     headerEl.hidden = current === "";
-    headerEl.innerHTML =
+    headerEl.innerHTML = fixLinks(
       '<div class="wrap header-inner">' +
         '<a class="brand" href="#">' + S.name + "</a>" +
         '<nav class="nav" aria-label="Main">' +
@@ -52,7 +80,7 @@
             return '<a href="#' + it[0] + '"' + (on ? ' aria-current="page"' : "") + ">" + it[1] + "</a>";
           }).join("") +
         "</nav>" +
-      "</div>";
+      "</div>");
   }
 
   function renderFooter() {
@@ -386,8 +414,7 @@
   /* ---------- Router ---------- */
 
   function route() {
-    var key = decodeURIComponent(location.hash.replace(/^#\/?/, ""));
-    if (key === "home") key = "";
+    var key = currentKey();
     var view =
       key === "" ? home() :
       key === "works" ? worksPage() :
@@ -397,10 +424,11 @@
       bySlug[key] ? workPage(bySlug[key]) : notFound();
 
     renderHeader(key);
-    app.innerHTML = view.html;
+    app.innerHTML = fixLinks(view.html);
     document.title = view.title;
     document.body.setAttribute("data-page", bySlug[key] ? "work" : (key || "home"));
     window.scrollTo(0, 0);
+    document.dispatchEvent(new CustomEvent("pagechange", { detail: { key: key } }));
   }
 
   /* ---------- Interactions ---------- */
@@ -413,7 +441,7 @@
     if (f || v) {
       app.querySelectorAll("[data-filter]").forEach(function (b) { b.setAttribute("aria-pressed", b.getAttribute("data-filter") === state.filter); });
       app.querySelectorAll("[data-view]").forEach(function (b) { b.setAttribute("aria-pressed", b.getAttribute("data-view") === state.view); });
-      document.getElementById("works-out").innerHTML = worksList();
+      document.getElementById("works-out").innerHTML = fixLinks(worksList());
     }
 
     if (e.target.id === "copy-mail") {
@@ -443,7 +471,28 @@
     }, FADE_OUT);
   }
 
-  window.addEventListener("hashchange", navigate);
+  if (PATHS) {
+    /* old "#zoom"-style links still land on the right page */
+    if (location.hash.length > 1 && currentKey() === "") {
+      var old = decodeURIComponent(location.hash.slice(1));
+      history.replaceState(null, "", ROOT + pageLink(old === "home" ? "" : old).replace(/^\.\//, ""));
+    }
+    /* clicks on the site's own links change the page without a full reload */
+    document.addEventListener("click", function (e) {
+      var a = e.target.closest && e.target.closest("a[href]");
+      if (!a || a.target || a.hasAttribute("download") || e.defaultPrevented || e.button !== 0 ||
+          e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      var u = new URL(a.href, location.href);
+      if (u.origin !== location.origin || u.pathname.indexOf(ROOT) !== 0) return;
+      if (/\.[a-z0-9]+$/i.test(u.pathname) && !/index\.html$/.test(u.pathname)) return;   // files (PDF, images)
+      e.preventDefault();
+      if (u.pathname !== location.pathname) history.pushState(null, "", u.pathname);
+      navigate();
+    });
+    window.addEventListener("popstate", navigate);
+  } else {
+    window.addEventListener("hashchange", navigate);
+  }
   renderFooter();
   route();
 })();

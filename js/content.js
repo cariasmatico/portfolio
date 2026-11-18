@@ -15,6 +15,10 @@ window.SITE = {
   tagline: "Composer, sound artist and multimedia artist working across concert music, electronics, stage performance and interactive media.",
   location: "Hamburg, Germany · Santiago, Chile",
 
+  /* The site's public address. Used for search engines and link previews.
+     If you move to your own domain, change it here and run `node build.js`. */
+  siteUrl: "https://cariasmatico.github.io/portfolio/",
+
   /* Shown in the footer and on the Contact page */
   contact: {
     email: "lucianocorreab@gmail.com",
